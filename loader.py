@@ -13,4 +13,5 @@ storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 db = DatabaseManager('data/databases.db')
 channel_id = config.CHANNEL_ID
+admin_chat_id = config.ADMIN_CHANNEL_ID
 

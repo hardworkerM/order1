@@ -21,22 +21,43 @@ from keyboards.default.base_kb import new_request_btn, end_request_btn
 from aiogram.dispatcher.filters import ChatTypeFilter
 
 
+async def get_topics(state):
+    data = await state.get_data()
+
+    lvl1 = data['topic_lvl1']
+    lvl2 = data['topic_lvl2']
+
+    return lvl1, lvl2
+
+
 @dp.callback_query_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.lvl1)
 async def send_request(call: CallbackQuery, state: FSMContext):
-    topic = call.message.text
-    print(call.data)
-    print(topic)
-    await call.message.edit_text(txt.topic_lvl2_text(call.data),
-                                 reply_markup=topic_lvl2_kb(call.data))
+    topic_lvl1 = call.data
+
+    async with state.proxy() as data:
+        data['topic_lvl1'] = topic_lvl1
 
     await topic_choice.lvl2.set()
+    if topic_lvl1 not in ['Найдено', 'Потеряно']:
+        await call.message.edit_text(txt.topic_lvl2_text(topic_lvl1), reply_markup=topic_lvl2_kb(topic_lvl1))
+    else:
+        await send_request(call, state)
 
 
 @dp.callback_query_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.lvl2)
 async def send_request(call: CallbackQuery, state: FSMContext):
-    topic = call.message.text
-    print(topic)
-    await call.message.edit_text(txt.media_choice_text(),
+    topic_lvl2 = call.data
+
+    async with state.proxy() as data:
+        data['topic_lvl2'] = topic_lvl2
+        # Инициилизируем
+        data['msg'] = []
+        data['caption'] = ''
+        data['type'] = ''
+        data['n'] = 0
+
+    lvl1, lvl2 = await get_topics(state)
+    await call.message.edit_text(txt.media_choice_text(lvl1, lvl2),
                                  reply_markup=request_btn())
 
     await topic_choice.media_choice.set()

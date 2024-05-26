@@ -7,3 +7,4 @@ class ChannelFilter(BoundFilter):
     async def check(self, message: types.Message):
         chat_id = message.chat.id
         return chat_id == channel_id
+

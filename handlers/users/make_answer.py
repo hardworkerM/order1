@@ -2,7 +2,7 @@ import asyncio
 
 from aiogram import types
 from aiogram.dispatcher.filters.builtin import CommandStart
-from loader import dp, bot, channel_id
+from loader import dp, bot, channel_id, admin_chat_id
 from typing import List, Union
 from aiogram.types import CallbackQuery
 
@@ -13,9 +13,9 @@ from help_functions.sql import analytics as analys
 from help_functions.file_work import write
 import message_texts.texts as txt
 
-from keyboards.inline.mane_kb import main_menu
 from states.answer_state import topic_choice
 from keyboards.inline.mane_kb import main_menu, request_btn, back_keyboard, confirm_keyboard
+from keyboards.inline.channel_kb import admin_keyboard
 
 from keyboards.default.base_kb import new_request_btn, end_request_btn
 from aiogram.dispatcher.filters import ChatTypeFilter
@@ -30,8 +30,13 @@ async def take_state_data(state):
     return data['n']
 
 
-def convert_to_album(message):
-    pass
+async def get_topics(state):
+    data = await state.get_data()
+
+    lvl1 = data['topic_lvl1']
+    lvl2 = data['topic_lvl2']
+
+    return lvl1, lvl2
 
 
 async def confirm_sending(message):
@@ -42,12 +47,6 @@ async def confirm_sending(message):
 @dp.message_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.media_choice, is_media_group=True,
                     content_types=['photo', 'video'])
 async def take_answer_with_media_group(message: types.Message, album: List[types.Message], state: FSMContext):
-    print('I AM IN take_answer_with_media_group')
-
-    # записываем аналитику
-    stat = await state.get_state()
-    info = analys.parse_message(message, stat)
-    await write.write_in(info)
 
     photo_ids = []
     for obj in album:
@@ -80,12 +79,6 @@ async def take_answer_with_media_group(message: types.Message, album: List[types
 @dp.message_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.media_choice,
                     content_types=types.ContentTypes.PHOTO)
 async def take_answer_with_photo(message: types.Message, state: FSMContext):
-    print("##########I AM IN take_answer_with_photo")
-    print(message.photo[-1].file_id)
-    # записываем аналитику
-    stat = await state.get_state()
-    info = analys.parse_message(message, stat)
-    await write.write_in(info)
 
     photo_id = message.photo[-1].file_id
     caption = message.caption
@@ -100,19 +93,13 @@ async def take_answer_with_photo(message: types.Message, state: FSMContext):
         await bot.delete_message(message.chat.id, message.message_id - 1)
     except Exception:
         print('HAVNT DELETED')
-    await message.answer(txt.media_choice_text(n), reply_markup=request_btn())
+    lvl1, lvl2 = await get_topics(state)
+    await message.answer(txt.media_choice_text(lvl1, lvl2), reply_markup=request_btn())
 
 
 @dp.message_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.media_choice,
                     content_types=['video'])
 async def take_answer_with_video(message: types.Message, state: FSMContext):
-    print("##########I AM IN take_answer_with_video")
-    print(message)
-
-    # записываем аналитику
-    stat = await state.get_state()
-    info = analys.parse_message(message, stat)
-    await write.write_in(info)
 
     video_id = message.video.file_id
     caption = message.caption
@@ -126,9 +113,9 @@ async def take_answer_with_video(message: types.Message, state: FSMContext):
     try:
         await bot.delete_message(message.chat.id, message.message_id - 1)
     except:
-        print('HAVNT DELETED')
         pass
-    await message.answer(txt.media_choice_text(), reply_markup=request_btn())
+    lvl1, lvl2 = await get_topics(state)
+    await message.answer(txt.media_choice_text(lvl1, lvl2), reply_markup=request_btn())
 
 
 @dp.callback_query_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.media_choice, text='next_step')
@@ -141,10 +128,18 @@ async def take_text_description(call: CallbackQuery, state: FSMContext):
 ########### Конец приема медиа
 @dp.message_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.text_handle)
 async def confirm_info(message: types.Message, state: FSMContext):
+
+    user_id, user_name, first_name = message.from_user.id, message.from_user.username,message.from_user.first_name
+
     await message.answer('Ваш запрос:')
     text = message.text
     async with state.proxy() as data:
         data['text'] = text
+        data['msg_id'] = message.message_id + 2
+        data['user_id'] = user_id
+        data['user_name'] = user_name
+        data['first_name'] = first_name
+
 
     data = await state.get_data()
     media_id = data['msg']
@@ -163,16 +158,27 @@ async def confirm_info(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.confirm, text='send_request')
 async def send_request(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text(txt.success_text())
+    await call.message.edit_text(txt.success_send_text())
 
     data = await state.get_data()
     media_id = data['msg']
     text = data['text']
     n = data['n']
+    msg_id = data['msg_id']
+    topic_lvl1 = data['topic_lvl1']
+    topic_lvl2 = data['topic_lvl2']
+    user_id = data['user_id']
+    user_name = data['user_name']
+    first_name = data['first_name']
+
+    # сделать с заглавной
+    text = txt.add_meta_data_to_text(text, topic_lvl1, topic_lvl2, user_id, user_name, first_name)
+
+    ### Скорее всего это решается через бд
     if n == 0:
-        await bot.send_message(channel_id, text)
+        await bot.send_message(admin_chat_id, text, reply_markup=admin_keyboard(have_more=0, msg_id=msg_id))
     else:
-        media_id[0].caption = text
-        await bot.send_media_group(channel_id, media_id)
+        await bot.send_media_group(admin_chat_id, media_id)
+        await bot.send_message(admin_chat_id, text, reply_markup=admin_keyboard(have_more=1, msg_id=msg_id))
 
     await state.finish()
