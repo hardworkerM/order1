@@ -79,8 +79,10 @@ def confirm_keyboard():
     markup = InlineKeyboardMarkup(row_width=1)
 
     btn1 = InlineKeyboardButton("Подтвердить бесплатное размещение", callback_data='send_request')
+    btn2 = InlineKeyboardButton("Платное объявление", callback_data='advert')
 
     markup.row(btn1)
+    # markup.row(btn2)
     markup.row(back_btn())
 
     return markup

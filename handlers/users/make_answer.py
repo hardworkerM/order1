@@ -156,6 +156,12 @@ async def confirm_info(message: types.Message, state: FSMContext):
     await topic_choice.confirm.set()
 
 
+@dp.callback_query_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.confirm, text='advert')
+async def send_ad_info(call: CallbackQuery, state: FSMContext):
+    await call.message.edit_text(txt.advert_inf_text())
+    await state.finish()
+
+
 @dp.callback_query_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.confirm, text='send_request')
 async def send_request(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text(txt.success_send_text())

@@ -98,8 +98,15 @@ def confirm_request_text():
     return text
 
 
+def advert_inf_text():
+    text = "Вы выбрали платное размещение. " \
+           "Перешлите сообщение выше ☝️ администратору: @UpSkolkovoHelpBot."
+
+    return text
+
 def success_send_text():
-    text = 'Оправлено!'
+    text = 'Ваш запрос отправлен на модерацию!\n\n' \
+           'При возникновении вопросов пишите @UpSkolkovoHelpBot'
     return text
 
 
