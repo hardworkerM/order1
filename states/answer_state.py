@@ -9,5 +9,6 @@ class topic_choice(StatesGroup):
     confirm = State()
 
 
-
-# class answer_st(StatesGroup):
+class topic_choice_admin(StatesGroup):
+    lvl1 = State()
+    lvl2 = State()

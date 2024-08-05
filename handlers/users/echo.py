@@ -18,6 +18,8 @@ async def make_answer_by_state(message, state):
         await message.answer(w_txt.txt_but_need_media(), reply_markup=request_btn())
     elif state == 'answer_st:confirm_request':
         await message.answer(txt.confirm_sending_request(), reply_markup=confirm_keyboard())
+    elif state=='new_user:confirm':
+        await message.answer('Пожалуйста, дождитесь процесса верификации, это занимает меньше дня')
     elif state=='new_user:got_photo':
         await message.answer('Отправьте именно фотографию!\nПришлите фотографию из окна или кватанцию ЖКУ')
     elif state=='new_user:home':

@@ -1,19 +1,22 @@
 import sqlite3 as lite
+import psycopg2 as psy
 
 
 class DatabaseManager(object):
-
-    def __init__(self, path):
-        self.conn = lite.connect(path)
+    def __init__(self, user_name, password, host, port, database):
+        self.conn = psy.connect(
+            user=user_name,
+            password=password,
+            host=host,
+            port=port,
+            database=database
+        )
         self.conn.execute('pragma foreign_keys = on')
         self.conn.commit()
         self.cur = self.conn.cursor()
 
     def create_tables(self):
-        self.query('CREATE TABLE IF NOT EXISTS user (id int, alias text, name text, verified int)')
-        self.query("""CREATE TABLE IF NOT EXISTS request 
-        (order_id int, user_id int, content text, caption int, topic_lvl1 text, topic_lvl2 text)""")
-
+        self.query('CREATE TABLE IF NOT EXISTS user (tg_id int, alias text, name text)')
         self.query("""CREATE TABLE IF NOT EXISTS user_all_text
          (user_tg_id int, username text, content_type text, msg_text text, command_flg int, state text, date text)""")
 

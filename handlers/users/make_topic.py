@@ -52,6 +52,7 @@ async def send_request(call: CallbackQuery, state: FSMContext):
         data['topic_lvl2'] = topic_lvl2
         # Инициилизируем
         data['msg'] = []
+        data['content_types'] = []
         data['caption'] = ''
         data['type'] = ''
         data['n'] = 0

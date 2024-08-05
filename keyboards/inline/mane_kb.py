@@ -82,7 +82,7 @@ def confirm_keyboard():
     btn2 = InlineKeyboardButton("Платное объявление", callback_data='advert')
 
     markup.row(btn1)
-    # markup.row(btn2)
+    markup.row(btn2)
     markup.row(back_btn())
 
     return markup

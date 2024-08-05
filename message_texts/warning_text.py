@@ -1,9 +1,8 @@
 from message_texts.texts import media_choice_text
 
 def txt_but_need_media():
-    t = media_choice_text()
     t2 = "\n<b>Отправьте только фото / видео, если хотите ввести текст - нажмите Далее\n</b>"
-    return t2+t
+    return t2
 
 
 def request_denied_text():
@@ -22,8 +21,9 @@ def new_user_text():
     return t
 
 
-def was_declined_text():
-    text = '\n\n Объявление отклонено из-за нарушения правил.  ' \
+def was_declined_text(info):
+    text = '<b>Объявление отклонено из-за нарушения правил.</b>\n\n' \
+           f'<code>{info}</code>\n' \
            'Повторно ознакомьтесь с ' \
            '<a href="https://telegra.ph/Pravila-03-01-6">правилами</a>'
     return text

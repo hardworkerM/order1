@@ -16,18 +16,18 @@ def back_keyboard():
     return markup
 
 
-def admin_keyboard(have_more=0, msg_id=None):
+def admin_keyboard(order_id, user_id):
     markup = InlineKeyboardMarkup(row_width=2)
 
-    btn1 = InlineKeyboardButton("Отправить", callback_data='send_in_channel'+';'+str(have_more))
+    btn1 = InlineKeyboardButton("Отправить", callback_data=f'send_in_channel;{order_id};{user_id};')
 
-    btn2 = InlineKeyboardButton("Отменить", callback_data='decline_send_in_chanel' + ';'+str(msg_id))
+    btn2 = InlineKeyboardButton("Отменить", callback_data=f'decline_send_in_chanel;{user_id}')
     # btn3 = InlineKeyboardButton("Отправить правила", callback_data='decline_send_in_chanel' + ';'+str(msg_id))
-
+    btn4 = InlineKeyboardButton('Исправить', callback_data=f'change_user_info;{order_id};{user_id}')
 
     markup.row(btn1)
     markup.row(btn2)
-
+    markup.row(btn4)
     return markup
 
 

@@ -2,67 +2,44 @@ from loader import db
 from collections import defaultdict
 import datetime, time
 """Не согласованы названия таблиц и колонок с функциями!"""
+#
+# self.query('CREATE TABLE IF NOT EXISTS '
+#            'request (order_id int, user_id int, photos text, caption int)')
 
 
-def filter_tasks(information):
-    memo_to_update = []
-    user_task = defaultdict(list)
-    for task in information:
-        user_id, title, description, memo_id = task
-        txt = f'<b>{title}</b>\n\n{description}'
-        user_task[user_id].append(txt)
-        memo_to_update.append(memo_id)
-    task_done(memo_to_update)
-    return user_task
+def convert_little(d):
+    if len(d) == 1:
+        return '0'+d
+    return d
 
 
-async def create_task_insert(id, title, msg, data):
-    info = (id, title, msg, data, 0)
-    db.query(f"INSERT INTO memo (user_id, title, description, date, status) VALUES {info}")
+def make_order_id():
+    date_now = datetime.datetime.now()
+    y = convert_little(str(date_now.year)[-2:])
+    m = convert_little(str(date_now.month))
+    d =convert_little(str(date_now.day))
+    h = convert_little(str(date_now.hour))
+    min = convert_little(str(date_now.minute))
+    s = convert_little(str(date_now.second))
+
+    order_id_str =y + m + d + h + min + s
+    order_id = int(order_id_str)
+    return order_id
 
 
-def take_date(date):
-    information = db.fetchall(f"""SELECT user_id, title, description, memo_id 
-                            FROM memo 
-                            WHERE date = '{date}'
-                            AND status = 0""")
-    if not information:
-        return 0
-    user_task = filter_tasks(information)
-    return user_task
+def new_request(order_id, user_id, content, caption, topic_lvl1, topic_lvl2):
+    info = (order_id, user_id, content, caption, topic_lvl1, topic_lvl2)
+
+    db.query(f"INSERT INTO request (order_id, user_id, content, caption, topic_lvl1, topic_lvl2) values {info}")
 
 
-def task_done(update):
-    for m_id in update:
-        db.query(f"""UPDATE memo 
-                    SET status = 1
-                    WHERE memo_id = {m_id}""")
-
-"""МОИ"""
-
-# упорядочивание по дате исполнения)))
-def task_date_filter(task):
-    y, m, d = [int(i) for i in task[2].split("-")]
-    date_list = datetime.datetime(y, m, d)
-    date_int = time.mktime(date_list.timetuple())
-    return date_int
+def find_order_info(user_id, order_id):
+    order_info = db.fetchall(f"""SELECT * from request 
+                                where user_id == {user_id} and order_id = {order_id}""")
+    return order_info[-1]
 
 
-def task_list_in_text(tasks):
-    text = '<b>Мои заметки:</b>\n\n'
-    if not tasks:
-        text += "У вас ещё нет заметок."
-        return text
-    tasks = sorted(tasks, key=task_date_filter)
-    for i in tasks:
-        title, description, task_date = i
-        text += f'<b>{title}</b>\n{description}\nКогда:\n{task_date}\n\n'
-    return text
-
-
-
-def take_user_tasks(user_id):
-    tasks = db.fetchall(f"""SELECT title, description, date
-                            FROM memo
-                            WHERE user_id = {user_id}""")
-    return task_list_in_text(tasks)
+def find_user_info(user_id):
+    user_info = db.fetchall(f"""SELECT alias, name from user 
+                                where id == {user_id}""")
+    return user_info[0]

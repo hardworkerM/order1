@@ -56,24 +56,30 @@ def topic_lvl2_text(lvl1):
     return f'{text}\n\n{warn}\n\n{t}'
 
 
-def media_choice_text(lvl1, lvl2):
-    text = 'Выборк меди, отправьте медиа'
+def media_choice_text(lvl1, lvl2, n=0):
+    text = '<b>Выберите медиа файлы для отправки</b>'
+    how_much = f'Медиа: {n}/5'
     t1 = f'Тип: {lvl1}'
     t2 = f'Категория: {lvl2}'
-    return f'{text}\n\n{t1}\n{t2}'
+    end = '<i>Нажмите Далее для добавления текста</i>'
+    return f'{text}\n{how_much}\n{t1}\n{t2}\n\n{end}'
 
 
-def text_choice_text():
-    text = 'Введите текст сообщения'
-
-    return text
+def text_choice_text(lvl1, lvl2, n=0):
+    text = '<b>Введите текст объявления</b>'
+    how_much = f'Медиа: {n}/5'
+    t1 = f'Тип: {lvl1}'
+    t2 = f'Категория: {lvl2}'
+    return f'{text}\n{how_much}\n{t1}\n{t2}'
 
 
 def add_meta_data_to_text(text, topic_lvl1, topic_lvl2, id, name, first_name):
-    category = f'<b>Категории</b>: #{("").join(topic_lvl1.title().split())} ' \
+    category = f'<b>Категории:</b> #{("").join(topic_lvl1.title().split())} ' \
                f'#{("").join(topic_lvl2.title().split())}'
-    connect = f'<b>Связатья:</b>: @{name}(#ID{id})'
-
+    if name != 'None':
+        connect = f'<b>Связатья:</b> @{name}(#ID{id})\ntg://user?id={id}'
+    else:
+        connect = f'<b>Связатья:</b>: В комментариях(#ID{id})\ntg://user?id={id}'
     text = f'{text}\n\n{category}\n{connect}'
 
     return text
@@ -100,6 +106,7 @@ def confirm_request_text():
 
 def advert_inf_text():
     text = "Вы выбрали платное размещение. " \
+           "Ссылка на наш прайс лист: " \
            "Перешлите сообщение выше ☝️ администратору: @UpSkolkovoHelpBot."
 
     return text
@@ -118,7 +125,34 @@ def success_admin_accept_text(msg_id):
 
 """ Регистрация пользователя"""
 
-def admin_confirm_photo_text(address, user_id):
-    text=f'Новый пользователь {user_id} прислал фотографию дома\n' \
-         f'Указанный адрес: {address}'
+
+def admin_confirm_photo_text(address, user_id, alias):
+    head = '<b>Заявка на доступ к публикациям объявления</b>\n\n'
+
+    if alias:
+        user_info = f'<b>Username:</b> @{alias}\n'
+    else:
+        user_info = '<b>Username:</b> Отсутствует\n'
+    house = f'<b>ID:</b> {user_id}\n' \
+         f'<b>Номер дома:</b> {address}'
+    return head+user_info + house
+
+
+def admin_confirm_user_result(result, user_id, alias, address):
+    publish_text = {'accept': '<b>Пользователь был принят\n\n</b>', 'deny': '<b>Заявка была отклонена\n\n</b>'}
+    user_info = f'<b>ID:</b> {user_id}'
+    user_info = f'<b>Username:</b> {alias}\n' + user_info +'\n'
+    house = f'<b>Номер дома:</b> {address}'
+    return publish_text[result] + user_info + house
+
+
+def confirm_user_success():
+    text = 'Ваш профиль подтвержден!\n' \
+           'Для начала работы с ботом нажмите на кнопку приступить'
+    return text
+
+
+def confirm_user_fail():
+    text = 'К сожалению фотография и адрес не прошли модерацию'
+
     return text

@@ -20,17 +20,18 @@ from keyboards.default.base_kb import new_request_btn, end_request_btn
 from aiogram.dispatcher.filters import ChatTypeFilter
 
 
-@dp.callback_query_handler(lambda x: x.data.split('_')[0]=='user')
-async def make_decision_for_user(call: CallbackQuery, state: FSMContext):
-    from_user = call.from_user.id
-
-    info = call.data.split('_')
-    result = info[1]
-    chat_id = info[2]
-    if result=='accept':
-        await bot.send_message(from_user, "WELCOME")
-    else:
-        await bot.send_message(from_user, "NOT WELCOME")
-    # await call.message.edit_text(f'Пользователь был {result}')
-    await call.message.edit_caption(f'Пользователь был {result}')
-    # НУЖНО ЗАПИСАТЬ В БД И ИЗМЕНИТЬ СОСТОЯНИЕ
+# @dp.callback_query_handler(lambda x: x.data.split('_')[0]=='user')
+# async def make_decision_for_user(call: CallbackQuery, state: FSMContext):
+#     from_user = call.from_user.id
+#
+#     info = call.data.split('_')
+#     result = info[1]
+#     chat_id = info[2]
+#     if result=='accept':
+#         await bot.send_message(from_user, txt.confirm_user_success())
+#     else:
+#         await bot.send_message(from_user, txt.confirm_user_fail())
+#         u.update_user_verification(from_user)
+#     # await call.message.edit_text(f'Пользователь был {result}')
+#     await call.message.edit_caption(f'Пользователь был {result}')
+#     # НУЖНО ЗАПИСАТЬ В БД И ИЗМЕНИТЬ СОСТОЯНИЕ

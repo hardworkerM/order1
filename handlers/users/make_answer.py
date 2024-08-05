@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery
 from aiogram.dispatcher import FSMContext
 
 from help_functions.sql import user as u
-from help_functions.sql import analytics as analys
+from help_functions.sql import tasks as tas
 from help_functions.file_work import write
 import message_texts.texts as txt
 
@@ -49,16 +49,21 @@ async def confirm_sending(message):
 async def take_answer_with_media_group(message: types.Message, album: List[types.Message], state: FSMContext):
 
     photo_ids = []
+    content_types = []
     for obj in album:
         if obj.photo:
             ph = obj.photo[-1]
             photo_ids.append(types.InputMediaPhoto(ph.file_id))
+            content_types.append('photo')
         else:
             video_id = obj[obj.content_type].file_id
             photo_ids.append(types.InputMediaVideo(video_id))
+            content_types.append('video')
+
 
     async with state.proxy() as data:
         data['msg'].extend(photo_ids)
+        data['content_types'].extend(content_types)
         data['caption'] = None
         data['n'] += len(photo_ids)
 
@@ -67,13 +72,9 @@ async def take_answer_with_media_group(message: types.Message, album: List[types
         await bot.delete_message(message.chat.id, message.message_id - 1)
     except:
         pass
-    # if n >= 5:
-    #     await message.answer()
-    await message.answer('pass', reply_markup=request_btn())
-    # await bot.send_media_group(message.chat.id, photo_ids)
-
-    # await message.answer(txt.answer_confirm_text, reply_markup=new_request_btn())
-    # await state.finish()
+    lvl1, lvl2 = await get_topics(state)
+    await message.answer(txt.media_choice_text(lvl1, lvl2, n),  reply_markup=request_btn())
+    # await message.answer('pass', reply_markup=request_btn())
 
 
 @dp.message_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.media_choice,
@@ -85,6 +86,7 @@ async def take_answer_with_photo(message: types.Message, state: FSMContext):
 
     async with state.proxy() as data:
         data['msg'].append(types.InputMediaPhoto(photo_id))
+        data['content_types'].append('photo')
         data['caption'] = caption
         data['n'] += 1
 
@@ -92,9 +94,9 @@ async def take_answer_with_photo(message: types.Message, state: FSMContext):
     try:
         await bot.delete_message(message.chat.id, message.message_id - 1)
     except Exception:
-        print('HAVNT DELETED')
+        pass
     lvl1, lvl2 = await get_topics(state)
-    await message.answer(txt.media_choice_text(lvl1, lvl2), reply_markup=request_btn())
+    await message.answer(txt.media_choice_text(lvl1, lvl2, n), reply_markup=request_btn())
 
 
 @dp.message_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.media_choice,
@@ -106,6 +108,7 @@ async def take_answer_with_video(message: types.Message, state: FSMContext):
 
     async with state.proxy() as data:
         data['msg'].append(types.InputMediaVideo(video_id))
+        data['content_types'].append('video')
         data['caption'] = caption
         data['n'] += 1
 
@@ -115,13 +118,14 @@ async def take_answer_with_video(message: types.Message, state: FSMContext):
     except:
         pass
     lvl1, lvl2 = await get_topics(state)
-    await message.answer(txt.media_choice_text(lvl1, lvl2), reply_markup=request_btn())
+    await message.answer(txt.media_choice_text(lvl1, lvl2, n), reply_markup=request_btn())
 
 
 @dp.callback_query_handler(ChatTypeFilter(chat_type='private'), state=topic_choice.media_choice, text='next_step')
 async def take_text_description(call: CallbackQuery, state: FSMContext):
     n = await take_state_data(state)
-    await call.message.edit_text(txt.text_choice_text(), reply_markup=back_keyboard())
+    lvl1, lvl2 = await get_topics(state)
+    await call.message.edit_text(txt.text_choice_text(lvl1, lvl2, n), reply_markup=back_keyboard())
     await topic_choice.text_handle.set()
 
 
@@ -139,7 +143,6 @@ async def confirm_info(message: types.Message, state: FSMContext):
         data['user_id'] = user_id
         data['user_name'] = user_name
         data['first_name'] = first_name
-
 
     data = await state.get_data()
     media_id = data['msg']
@@ -176,15 +179,36 @@ async def send_request(call: CallbackQuery, state: FSMContext):
     user_id = data['user_id']
     user_name = data['user_name']
     first_name = data['first_name']
+    content_types = data['content_types']
 
     # сделать с заглавной
-    text = txt.add_meta_data_to_text(text, topic_lvl1, topic_lvl2, user_id, user_name, first_name)
+    text_to_publish = txt.add_meta_data_to_text(text, topic_lvl1, topic_lvl2, user_id, user_name, first_name)
+    photo_ids = []
+    print(media_id)
+    if media_id:
+        for i, media in enumerate(media_id):
+            content_type = content_types[i]
+            line = f'{media.media}:{content_type}'
+            photo_ids.append(line)
+        medias = (';').join(photo_ids)
+    else:
+        medias = 'None'
 
     ### Скорее всего это решается через бд
+    order_id = tas.make_order_id()
+
+    tas.new_request(order_id, user_id, medias, text, topic_lvl1, topic_lvl2)
+
     if n == 0:
-        await bot.send_message(admin_chat_id, text, reply_markup=admin_keyboard(have_more=0, msg_id=msg_id))
+        sent_message = await bot.send_message(admin_chat_id, text_to_publish, reply_markup=admin_keyboard(order_id, user_id,))
     else:
-        await bot.send_media_group(admin_chat_id, media_id)
-        await bot.send_message(admin_chat_id, text, reply_markup=admin_keyboard(have_more=1, msg_id=msg_id))
+        media_id[0].caption = text_to_publish
+        sent_messages = await bot.send_media_group(admin_chat_id, media_id)
+        await bot.send_message(admin_chat_id,
+                               'Подтвердить?',
+                               reply_markup=admin_keyboard(order_id, user_id),
+                               reply_to_message_id=sent_messages[0].message_id)
+
+        # await bot.send_message(admin_chat_id, text, reply_markup=admin_keyboard(have_more=1, msg_id=msg_id))
 
     await state.finish()
